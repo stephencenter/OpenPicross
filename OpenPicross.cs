@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System.Collections.Generic;
+using System;
 
 namespace Picross
 {
@@ -8,7 +10,6 @@ namespace Picross
     {
         private GraphicsDeviceManager graphics;
         private SpriteBatch sprite_batch;
-        private PuzzleTemplate loaded_map;
 
         public OpenPicross()
         {
@@ -20,7 +21,6 @@ namespace Picross
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
-            loaded_map = PuzzleLoader.LoadPuzzleFromPNG();
 
             base.Initialize();
         }
