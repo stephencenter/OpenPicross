@@ -11,11 +11,6 @@ namespace Picross
         public Pixel[,] SolutionMap  { get; }
         public Pixel[,] PlayerMap { get; set; }
 
-        /**********************
-        *    STATIC METHODS   *
-        ***********************/
-        #region 
-
         public static PuzzleGuide GetPuzzleGuide(Pixel[,] pixel_map) 
         {
             // Use the pixel map to generate the picross guide
@@ -89,73 +84,6 @@ namespace Picross
             return new PuzzleGuide(column_guide, row_guide);
         }
 
-        public static void PrintPixelMap(Pixel[,] pixel_map) 
-        {
-            for (int y = 0; y < pixel_map.GetLength(1); y++) 
-            {   
-                string row = "";
-
-                for (int x = 0; x < pixel_map.GetLength(0); x++)
-                {
-                    if (pixel_map[x, y].State == PixelState.On) 
-                    {
-                        row += "X";
-                    }
-                    
-                    else if (pixel_map[x, y].State == PixelState.Ignored) 
-                    {
-                        row += ".";
-                    }
-
-                    else
-                    {
-                        row += "·";
-                    }
-                }
-
-                Console.WriteLine(row);
-            }
-        }
-
-        #endregion
-
-        /**********************
-        *   INSTANCE METHODS  *
-        ***********************/
-        #region 
-
-        public void PixelToggleOnOff(int x, int y) 
-        {
-            // Pixels with the "Ignored" state cannot be toggled on or off,
-            // they must be unignored first
-
-            if (PlayerMap[x, y].State == PixelState.Off) 
-            {
-                PlayerMap[x, y].State = PixelState.On;
-            }
-
-            else if (PlayerMap[x, y].State == PixelState.On) 
-            {
-                PlayerMap[x, y].State = PixelState.Off;
-            }
-        }
-
-        public void PixelToggleIgnored(int x, int y) 
-        {
-            // Pixels with the "On" state cannot be ignored,
-            // they must be toggled off first
-
-            if (PlayerMap[x, y].State == PixelState.Off) 
-            {
-                PlayerMap[x, y].State = PixelState.Ignored;
-            }
-
-            else if (PlayerMap[x, y].State == PixelState.Ignored) 
-            {
-                PlayerMap[x, y].State = PixelState.Off;
-            }
-        }
-
         public bool CheckForVictory() 
         {
             // We calculate the puzzle guide that would have been generated
@@ -191,33 +119,22 @@ namespace Picross
             return true;
         }
 
-        public void PrintGuide(Pixel[,] pixel_map) 
-        {
-            Console.WriteLine("ROWS: ");
-            foreach (List<int> row in GetPuzzleGuide(pixel_map).Rows) 
-            {
-                Console.WriteLine(String.Join(" ", row));
-            }
-
-            Console.WriteLine();
-            Console.WriteLine("COLUMNS: ");
-            foreach (List<int> column in GetPuzzleGuide(pixel_map).Columns) 
-            {
-                Console.WriteLine(String.Join(" ", column));
-            }
-        }
-
-        #endregion
-
-        /**********************
-        *     CONSTRUCTOR     *
-        ***********************/
         public PuzzleMap(Pixel[,] pixel_map)
         {
             SolutionMap = pixel_map;
             PlayerMap = new Pixel[pixel_map.GetLength(0), pixel_map.GetLength(1)];
+
+            for (int x = 0; x < PlayerMap.GetLength(0); x++)
+            {   
+                for (int y = 0; y < PlayerMap.GetLength(1); y++) 
+                {
+                    PlayerMap[x, y] = new Pixel();
+                    PlayerMap[x, y].Position = SolutionMap[x, y].Position;
+                }
+            }
         }
     }
+
 
     public class Pixel 
     {
@@ -225,11 +142,47 @@ namespace Picross
         public Texture2D Sprite { get; set; }
         public Vector2 Position { get; set; }
 
+        public void ToggleOnOff() 
+        {
+            // Pixels with the "Ignored" state cannot be toggled on or off, they must be unignored first
+
+            if (State == PixelState.Off) 
+            {
+                Sprite = Logic.Content.Load<Texture2D>("Sprites/pixel_on");
+                State = PixelState.On;
+            }
+
+            else if (State == PixelState.On) 
+            {
+                Sprite = Logic.Content.Load<Texture2D>("Sprites/pixel_off");
+                State = PixelState.Off;
+            }
+        }
+
+        public void ToggleIgnored() 
+        {
+            // Pixels with the "On" state cannot be ignored, they must be toggled off first
+
+            Console.WriteLine(State);
+            if (State == PixelState.Off) 
+            {
+                Sprite = Logic.Content.Load<Texture2D>("Sprites/pixel_ignored");
+                State = PixelState.Ignored;
+            }
+
+            else if (State == PixelState.Ignored) 
+            {
+                Sprite = Logic.Content.Load<Texture2D>("Sprites/pixel_off");
+                State = PixelState.Off;
+            }
+        }
+
         public Pixel() 
         {
             Sprite = Logic.Content.Load<Texture2D>("Sprites/pixel_off");
         }
     }
+
 
     public enum PixelState
     {
@@ -237,6 +190,7 @@ namespace Picross
         On,
         Ignored
     }
+
 
     public class PuzzleGuide
     {

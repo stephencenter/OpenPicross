@@ -12,11 +12,10 @@ namespace Picross
     {
         private readonly GraphicsDeviceManager graphics;
         private SpriteBatch sprite_batch;
-        RenderTarget2D OffScreenRenderTarget;
-        Point OldWindowSize;
-        private static float aspect_ratio = 16/9f;
-        MouseState mouse_state;
         PuzzleMap loaded_puzzle;
+        bool left_down = false;
+        bool right_down = false;
+        float scaling_factor = 1.0f;
 
         public OpenPicross()
         {
@@ -25,42 +24,15 @@ namespace Picross
             Logic.UpdateContent(Content);
             
             // Let the user resize their window if they want to, and also make their mouse cursor visable
-            Window.AllowUserResizing = true;
+            Window.AllowUserResizing = false;
             IsMouseVisible = true;
-            Window.ClientSizeChanged += new EventHandler<EventArgs>(Window_ClientSizeChanged);
-        }
-
-        void Window_ClientSizeChanged(object sender, EventArgs e)
-        {
-            // This code is from https://stackoverflow.com/a/8396832
-            // It is licensed under CC BY-SA 3.0: https://creativecommons.org/licenses/by-sa/3.0/
-            Window.ClientSizeChanged -= new EventHandler<EventArgs>(Window_ClientSizeChanged);
-
-            if (Window.ClientBounds.Width != OldWindowSize.X)
-            {
-                graphics.PreferredBackBufferWidth = Window.ClientBounds.Width;
-                graphics.PreferredBackBufferHeight = (int)(Window.ClientBounds.Width / aspect_ratio);
-
-                graphics.ApplyChanges();
-            }
-            
-            if (Window.ClientBounds.Height != OldWindowSize.Y)
-            {
-                graphics.PreferredBackBufferWidth = (int)(Window.ClientBounds.Height * aspect_ratio);
-                graphics.PreferredBackBufferHeight = Window.ClientBounds.Height;
-
-                graphics.ApplyChanges();
-            }
-
-            OldWindowSize = new Point(Window.ClientBounds.Width, Window.ClientBounds.Height);
-            Window.ClientSizeChanged += new EventHandler<EventArgs>(Window_ClientSizeChanged);
         }
 
         protected override void Initialize()
         {
             // Set the window to its default resolution
-            graphics.PreferredBackBufferWidth = 1920;
-            graphics.PreferredBackBufferHeight = 1080;
+            graphics.PreferredBackBufferWidth = 1366;
+            graphics.PreferredBackBufferHeight = 768;
             graphics.ApplyChanges();
 
             base.Initialize();
@@ -69,16 +41,11 @@ namespace Picross
         protected override void LoadContent()
         {
             sprite_batch = new SpriteBatch(GraphicsDevice);
-            OldWindowSize = new Point(Window.ClientBounds.Width, Window.ClientBounds.Height);
-            OffScreenRenderTarget = new RenderTarget2D(GraphicsDevice, Window.ClientBounds.Width, Window.ClientBounds.Height);
-            loaded_puzzle = PuzzleLoader.LoadPuzzleFromPNG("TestPuzzles/test5.png");
+            loaded_puzzle = PuzzleLoader.LoadPuzzleFromPNG("TestPuzzles/test_a.png");
         }
 
         protected override void UnloadContent()
         {
-            if (OffScreenRenderTarget != null)
-                OffScreenRenderTarget.Dispose();
-
             if (sprite_batch != null)
                 sprite_batch.Dispose();
 
@@ -89,27 +56,66 @@ namespace Picross
         {
             // Update the value of Logic.Content so we can use it elsewhere
             Logic.UpdateContent(Content);
-            mouse_state = Mouse.GetState();
+
+            scaling_factor = (float)Window.ClientBounds.Height/PuzzleLoader.internal_height;
+
+            // Check if the left or right mouse buttons have been clicked
+            // A click has not actually occured until the button has been released
+            var mouse_state = Mouse.GetState();
+            var left_click = false;
+            var right_click = false;
+
+            if (left_down && mouse_state.LeftButton != ButtonState.Pressed) 
+            {
+                left_click = true;
+            }
+
+            left_down = (mouse_state.LeftButton == ButtonState.Pressed);
+
+            if (right_down && mouse_state.RightButton != ButtonState.Pressed) 
+            {
+                right_click = true;
+            }
+
+            right_down = (mouse_state.RightButton == ButtonState.Pressed);
+
+            // 
+            for (int x = 0; x < loaded_puzzle.PlayerMap.GetLength(0); x++)
+            {   
+                for (int y = 0; y < loaded_puzzle.PlayerMap.GetLength(1); y++) 
+                {
+                    var pixel = loaded_puzzle.PlayerMap[x, y];
+                    var botright = new Vector2(pixel.Position.X + PuzzleLoader.pixel_size, pixel.Position.Y + PuzzleLoader.pixel_size);
+                    var mouse_pos = new Vector2(mouse_state.Position.X/scaling_factor, mouse_state.Position.Y/scaling_factor);
+
+                    if (Logic.IsMousePointing(pixel.Position, botright, mouse_pos))
+                    {
+                        if (left_click) 
+                        {
+                            pixel.ToggleOnOff();
+                        }
+
+                        else if (right_click) 
+                        {
+                            pixel.ToggleIgnored();
+                        }
+                    }
+                }
+            }
 
             base.Update(gameTime);
-        }
-
-        protected override bool BeginDraw()
-        {
-            GraphicsDevice.SetRenderTarget(OffScreenRenderTarget);
-            return base.BeginDraw();
         }
 
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
-            sprite_batch.Begin(SpriteSortMode.Immediate, null, SamplerState.PointClamp);
+            sprite_batch.Begin(SpriteSortMode.Immediate, null, SamplerState.PointClamp, null, null, null, Matrix.CreateScale(scaling_factor));
 
-            for (int x = 0; x < loaded_puzzle.SolutionMap.GetLength(0); x++)
+            for (int x = 0; x < loaded_puzzle.PlayerMap.GetLength(0); x++)
             {   
-                for (int y = 0; y < loaded_puzzle.SolutionMap.GetLength(1); y++) 
+                for (int y = 0; y < loaded_puzzle.PlayerMap.GetLength(1); y++) 
                 {
-                    var pixel = loaded_puzzle.SolutionMap[x, y];
+                    var pixel = loaded_puzzle.PlayerMap[x, y];
                     sprite_batch.Draw(pixel.Sprite, pixel.Position, null, Color.White, 0f, Vector2.Zero,
                         (float)PuzzleLoader.pixel_size/pixel.Sprite.Height, SpriteEffects.None, 0f);
                 }
@@ -118,22 +124,12 @@ namespace Picross
             sprite_batch.End();
 
             base.Draw(gameTime);
-        }       
-        
-        protected override void EndDraw()
-        {
-            GraphicsDevice.SetRenderTarget(null);
-            sprite_batch.Begin();
-            sprite_batch.Draw(OffScreenRenderTarget, GraphicsDevice.Viewport.Bounds, Color.White);
-            sprite_batch.End();
-            base.EndDraw();
         }
     }
 
     public static class Logic
     {
         public static ContentManager Content;
-        public static GraphicsDevice Graphics;
 
         // List of valid actions, these can have multiple keys assigned to them
         public enum Actions
@@ -151,6 +147,11 @@ namespace Picross
         public static bool IsButtonPressed(Actions action)
         {
             return control_map[action].Any(x => Keyboard.GetState().IsKeyDown(x));
+        }
+
+        public static bool IsMousePointing(Vector2 topleft, Vector2 botright, Vector2 mouse_pos) 
+        {
+            return topleft.X < mouse_pos.X && mouse_pos.X < botright.X && topleft.Y < mouse_pos.Y && mouse_pos.Y < botright.Y;
         }
 
         public static void UpdateContent(ContentManager content)

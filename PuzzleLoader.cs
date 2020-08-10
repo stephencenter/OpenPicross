@@ -10,6 +10,8 @@ namespace Picross
         public static int board_width_px;
         public static int board_height_px;
         public static int pixel_size;
+        public static int internal_width = 1920;
+        public static int internal_height = 1080;
 
         public static PuzzleMap LoadPuzzleFromPNG(string file) 
         {
