@@ -30,7 +30,12 @@
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="PNGtoPicross/PNGs/*">
+    <Content Include="TestPuzzles/*">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content> 
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Content/bin/DesktopGL/Sprites/*">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content> 
   </ItemGroup>

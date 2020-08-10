@@ -5,13 +5,14 @@ namespace Picross
 {
     public static class PuzzleLoader 
     {
-        public static Vector2 board_origin = new Vector2(776, 300);
+        public static readonly Vector2 board_origin = new Vector2(776, 300);
+        public static readonly Vector2 colguide_origin = new Vector2(776, 300);
+        public const int internal_width = 1920;
+        public const int internal_height = 1080;
         private const int board_max = 734;
         public static int board_width_px;
         public static int board_height_px;
         public static int pixel_size;
-        public static int internal_width = 1920;
-        public static int internal_height = 1080;
 
         public static PuzzleMap LoadPuzzleFromPNG(string file) 
         {
