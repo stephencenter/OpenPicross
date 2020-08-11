@@ -1,15 +1,15 @@
 using System.Drawing;
 using Microsoft.Xna.Framework;
+using System;
 
 namespace Picross 
 {
     public static class PuzzleLoader 
     {
-        public static readonly Vector2 board_origin = new Vector2(776, 300);
-        public static readonly Vector2 colguide_origin = new Vector2(776, 300);
+        public static readonly Vector2 board_origin = new Vector2(480, 125);
         public const int internal_width = 1920;
         public const int internal_height = 1080;
-        private const int board_max = 750;
+        private static int board_max;
         public static int board_width_px;
         public static int board_height_px;
         public static int tile_size;
@@ -17,6 +17,7 @@ namespace Picross
         public static PuzzleMap LoadPuzzleFromPNG(string file) 
         {
             Bitmap image = new Bitmap(file);
+            board_max = (int)((internal_height - board_origin.Y)*0.99f);
 
             // Create a 2D-Array of Pixels, with each element corresponding to a pixel in the PNG. 
             // The Pixel class is defined in the PuzzleMap.cs file
