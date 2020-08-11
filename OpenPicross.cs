@@ -59,7 +59,7 @@ namespace Picross
                 { "pixel_ignored", Content.Load<Texture2D>("Sprites/pixel_ignored") }
             };
 
-            loaded_puzzle = PuzzleLoader.LoadPuzzleFromPNG("TestPuzzles/test_g.png");
+            loaded_puzzle = PuzzleLoader.LoadPuzzleFromPNG("TestPuzzles/test9.png");
         }
 
         protected override void Update(GameTime gameTime)
@@ -74,7 +74,7 @@ namespace Picross
                 for (int y = 0; y < loaded_puzzle.PlayerMap.GetLength(1); y++) 
                 {
                     var pixel = loaded_puzzle.PlayerMap[x, y];
-                    var botright = new Vector2(pixel.Position.X + PuzzleLoader.pixel_size, pixel.Position.Y + PuzzleLoader.pixel_size);
+                    var botright = new Vector2(pixel.Position.X + PuzzleLoader.tile_size, pixel.Position.Y + PuzzleLoader.tile_size);
 
                     if (InputManager.IsMousePointing(pixel.Position, botright))
                     {
@@ -106,13 +106,15 @@ namespace Picross
                 {
                     var pixel = loaded_puzzle.PlayerMap[x, y];
                     sprite_batch.Draw(pixel.Sprite, pixel.Position, null, Color.White, 0f, Vector2.Zero,
-                        (float)PuzzleLoader.pixel_size/pixel.Sprite.Height, SpriteEffects.None, 0f);
+                        (float)PuzzleLoader.tile_size/pixel.Sprite.Height, SpriteEffects.None, 0f);
                 }
             }
 
             var puzzle_guide = loaded_puzzle.GetSolutionGuide();
             var current_position = PuzzleLoader.colguide_origin;
 
+            // This counter tells us index we're at in the column list
+            int col_index = 0;
             foreach (List<int> column in puzzle_guide.Columns)
             {
                 // This is the height in pixels of the number "Zero" in our sprite map
@@ -120,40 +122,51 @@ namespace Picross
                 // This will make it easier for us to do some positioning math
                 var num_height = SpriteMap["0"].Height;
 
-                // to_scale is how much to shrink the guide so that it will fit in the width of the tile
-                var to_scale = ((float)PuzzleLoader.pixel_size/num_height);
+                // col_scale is how much to shrink the column so that it will fit in the width of the tile
+                var col_scale = ((float)PuzzleLoader.tile_size/num_height);
 
-                // margin is how big the vertical space above the board is compared to the guide
-                var margin = (PuzzleLoader.colguide_origin.Y)/(column.Count*to_scale*num_height);
+                // margin is how much of the vertical space above the board is being taken up by this column of the guide
+                var margin = (column.Count*col_scale*num_height)/(PuzzleLoader.colguide_origin.Y);
                 
-                // If the margin is too small for the guide, then we have to shrink the guide even further to make it fit
-                to_scale = margin > 1 ? to_scale : to_scale*margin;
+                // If the margin is too small for the guide, then we have to shrink the column even further to make it fit
+                col_scale = margin > 1 ? col_scale/margin : col_scale;
 
-                current_position = new Vector2
-                (
-                    current_position.X + PuzzleLoader.pixel_size/2 - num_height*to_scale/2,
-                    current_position.Y - num_height*to_scale
-                );
+                // We push the column over to the right a distance equal to half the width of one tile,
+                // minus half the apparent width of a number sprite. This will center the column horizontally
+                // relative to the tile
+                current_position.X += (PuzzleLoader.tile_size/2 - num_height*col_scale/2);
+
+                // We push the column upwards a distance equal to its apparent height. This will align the bottom of 
+                // the column with the top of the board
+                current_position.Y -= num_height*col_scale;
                         
-                Console.WriteLine($"{current_position}, {to_scale}, {margin}");
+                Console.WriteLine($"{current_position}, {col_scale}, {margin}");
 
+                float initial_x = current_position.X;
                 foreach (int number in Enumerable.Reverse(column))
                 {
                     var str = number.ToString();
 
+                    // If the number has multiple digits, we'll have to shrink it even more
+                    float num_scale = col_scale/str.Length;
+
                     foreach (char c in str) 
                     {
-                        text_batch.Draw(SpriteMap[c.ToString()], current_position, null, Color.White, 0f, Vector2.Zero, to_scale, SpriteEffects.None, 0f);
+                        text_batch.Draw(SpriteMap[c.ToString()], current_position, null, Color.White, 0f, Vector2.Zero, num_scale, SpriteEffects.None, 0f);
+                        current_position.X += num_height*num_scale*0.8f;
                     }
 
-                    current_position.Y -= num_height*to_scale;
+                    current_position.Y -= num_height*col_scale;
+                    current_position.X = initial_x;
                 }
 
-                break;
+                current_position.Y = PuzzleLoader.colguide_origin.Y;
+                current_position.X = PuzzleLoader.colguide_origin.X + PuzzleLoader.tile_size*(col_index + 1);
+                col_index++;
             }
             
             sprite_batch.End();
-            text_batch.End();
+            text_batch.End(); 
 
             base.Draw(gameTime);
         }
