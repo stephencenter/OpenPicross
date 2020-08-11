@@ -13,13 +13,13 @@ namespace Picross
         private static Microsoft.Xna.Framework.Input.MouseState mouse_state;
 
         // Dictionary that determines which keys correspond to which actions
-        public static Dictionary<InputActions, List<Keys>> keyboard_map = new Dictionary<InputActions, List<Keys>>()
+        public static Dictionary<Actions, List<Keys>> keyboard_map = new Dictionary<Actions, List<Keys>>()
         {
-
+            { Actions.Special, new List<Keys>() { Keys.Space  } }
         };        
 
         // Check to see if a specific key is pressed
-        public static bool IsButtonPressed(InputActions action)
+        public static bool IsButtonPressed(Actions action)
         {
             return keyboard_map[action].Any(x => Keyboard.GetState().IsKeyDown(x));
         }
@@ -92,8 +92,8 @@ namespace Picross
 
 
     // List of valid actions, these can inputs assigned to them via InputManager.keyboard_map
-    public enum InputActions
+    public enum Actions
     {
-
+        Special
     }
 }

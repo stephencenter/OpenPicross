@@ -1,9 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 
 namespace Picross
 {
@@ -59,7 +57,7 @@ namespace Picross
                 { "pixel_ignored", Content.Load<Texture2D>("Sprites/pixel_ignored") }
             };
 
-            loaded_puzzle = PuzzleLoader.LoadPuzzleFromPNG("TestPuzzles/test6.png");
+            loaded_puzzle = PuzzleLoader.LoadPuzzleFromPNG("TestPuzzles/test_a.png");
         }
 
         protected override void Update(GameTime gameTime)
@@ -169,7 +167,7 @@ namespace Picross
                     // multi-digit numbers are centered properly
                     current_position.X += num_height*num_scale*0.175f*(str.Length - 1);
 
-                    // Draw each of the digits of each number from the guide
+                    // Draw each of the digits of in the number to the screen
                     foreach (char c in str) 
                     {   
                         text_batch.Draw(SpriteMap[c.ToString()], current_position, null, Color.White, 0f, Vector2.Zero, num_scale, SpriteEffects.None, 0f);
@@ -208,13 +206,48 @@ namespace Picross
                 var row_scale = ((float)PuzzleLoader.tile_size/num_height);
 
                 // margin is how much of the horizontal space to the left of the board is being taken up by this row of the guide
-                var margin = (row.Count*row_scale*num_height)/(PuzzleLoader.board_origin.Y);
-                
-                // If the margin is too small for the guide, then we have to shrink the row even further to make it fit
-                row_scale = margin > 1 ? row_scale/margin : row_scale;
+                var margin = (row.Count*PuzzleLoader.tile_size)/(PuzzleLoader.board_origin.X);
 
-                //text_batch.Draw(SpriteMap["0"], current_position, null, Color.White, 0f, Vector2.Zero, row_scale, SpriteEffects.None, 0f);
+                // If margin > 1, then the row is to big and we need to shrink it
+                margin = margin > 1 ? margin : 1;
+
+                float initial_y = current_position.Y;
+                foreach (int number in Enumerable.Reverse(row))
+                {
+                    var str = number.ToString();
+
+                    // If the number has multiple digits, we'll have to shrink it even more
+                    float num_scale = row_scale/str.Length;
+
+                    // Move the next number to the left, with the distance scaled down a bit if there's no margin
+                    current_position.X -= PuzzleLoader.tile_size/margin;
+
+                    // Center multi-digit numbers vertically
+                    if (str.Length > 1) 
+                    {
+                        current_position.Y += num_height*num_scale/2;
+                        current_position.X += PuzzleLoader.tile_size/2;
+                    }
+
+                    // Draw each of the digits of in the number to the screen
+                    float initial_x = current_position.X;
+                    foreach (char c in Enumerable.Reverse(str))
+                    {   
+                        text_batch.Draw(SpriteMap[c.ToString()], current_position, null, Color.White, 0f, Vector2.Zero, num_scale, SpriteEffects.None, 0f);
+                        current_position.X -= num_height*num_scale*0.75f;
+                    }
+
+                    // We return to our inital X and Y value for the next number in the row
+                    current_position.X = initial_x;
+                    current_position.Y = initial_y;
+                }
+
+                // Return the drawing position to the board origin, and then calculate from there where to begin
+                // the next row
+                current_position.X = PuzzleLoader.board_origin.X;
+                current_position.Y = PuzzleLoader.board_origin.Y + PuzzleLoader.tile_size*(row_index + 1);
+                row_index++;
             }
         }
     }
-}
+} 
