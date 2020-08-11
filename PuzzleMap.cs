@@ -11,6 +11,84 @@ namespace Picross
         private Pixel[,] SolutionMap  { get; }
         public Pixel[,] PlayerMap { get; set; }
 
+        private static PuzzleGuide get_puzzle_guide(Pixel[,] pixel_map) 
+        {
+            // Use the pixel map to generate the picross guide
+            var column_guide = new List<List<int>>() {};
+            var row_guide = new List<List<int>>() {};
+
+            for (int x = 0; x < pixel_map.GetLength(0); x++) 
+            {
+                var current_column = new List<int>() { 0 };
+                var last_pixel = false;
+                
+                for (int y = 0; y < pixel_map.GetLength(1); y++)
+                {
+                    if (pixel_map[x, y].State == PixelState.On) 
+                    {
+                        current_column[current_column.Count - 1]++;
+                        last_pixel = true;
+                    }
+                        
+                    else
+                    {
+                        if (last_pixel)
+                        {
+                            current_column.Add(0);
+                        }
+
+                        last_pixel = false;
+                    }
+                }
+                
+                if (current_column.Count > 1 && current_column.Last() == 0)
+                {
+                    current_column.RemoveAt(current_column.Count - 1);
+                }
+                    
+                column_guide.Add(current_column);
+            }  
+
+            for (int y = 0; y < pixel_map.GetLength(1); y++) 
+            {
+                var current_row = new List<int>() { 0 };
+                var last_pixel = false;
+                
+                for (int x = 0; x < pixel_map.GetLength(0); x++)
+                {
+                    if (pixel_map[x, y].State == PixelState.On) 
+                    {
+                        current_row[current_row.Count - 1]++;
+                        last_pixel = true;
+                    }
+                        
+                    else
+                    {
+                        if (last_pixel)
+                        {
+                            current_row.Add(0);
+                        }
+
+                        last_pixel = false;
+                    }
+                }
+                
+                if (current_row.Count > 1 && current_row.Last() == 0)
+                {
+                    current_row.RemoveAt(current_row.Count - 1);
+                }
+                    
+                row_guide.Add(current_row);
+            }
+
+            return new PuzzleGuide(column_guide, row_guide);
+        }
+
+        public PuzzleGuide GetSolutionGuide() 
+        {
+            return get_puzzle_guide(SolutionMap);
+        }
+
         public bool CheckForVictory() 
         {
             // We calculate the puzzle guide that would have been generated
@@ -19,8 +97,8 @@ namespace Picross
             // Since there isn't a 1-to-1 correspondence between puzzle guides and
             // pixel maps, that means it's possible for the player to finish some
             // puzzles without using the intended solution!
-            var solution_guide = SolutionMap.GetPuzzleGuide();
-            var player_guide = PlayerMap.GetPuzzleGuide();
+            var solution_guide = GetSolutionGuide();
+            var player_guide = get_puzzle_guide(PlayerMap);
 
             var s_col = solution_guide.Columns;
             var p_col = player_guide.Columns;
@@ -74,13 +152,13 @@ namespace Picross
             // Pixels with the "Ignored" state cannot be toggled on or off, they must be unignored first
             if (State == PixelState.Off) 
             {
-                Sprite = Logic.Content.Load<Texture2D>("Sprites/pixel_on");
+                Sprite = OpenPicross.SpriteMap["pixel_on"];
                 State = PixelState.On;
             }
 
             else if (State == PixelState.On) 
             {
-                Sprite = Logic.Content.Load<Texture2D>("Sprites/pixel_off");
+                Sprite = OpenPicross.SpriteMap["pixel_off"];
                 State = PixelState.Off;
             }
         }
@@ -90,20 +168,20 @@ namespace Picross
             // Pixels with the "On" state cannot be ignored, they must be toggled off first
             if (State == PixelState.Off) 
             {
-                Sprite = Logic.Content.Load<Texture2D>("Sprites/pixel_ignored");
+                Sprite = OpenPicross.SpriteMap["pixel_ignored"];
                 State = PixelState.Ignored;
             }
 
             else if (State == PixelState.Ignored) 
             {
-                Sprite = Logic.Content.Load<Texture2D>("Sprites/pixel_off");
+                Sprite = OpenPicross.SpriteMap["pixel_off"];
                 State = PixelState.Off;
             }
         }
 
         public Pixel() 
         {
-            Sprite = Logic.Content.Load<Texture2D>("Sprites/pixel_off");
+            Sprite = OpenPicross.SpriteMap["pixel_off"];
         }
     }
 
