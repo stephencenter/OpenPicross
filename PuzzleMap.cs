@@ -140,39 +140,42 @@ namespace Picross
     }
 
 
-    public class Pixel : GameObject
+    public class Pixel : Interactable
     {
         public PixelState PixelState { get; set; }
 
-        public void ToggleOnOff() 
+        public override void OnCursorHover()
         {
-            // Pixels with the "Ignored" state cannot be toggled on or off, they must be unignored first
-            if (PixelState == PixelState.Off) 
+            if (InputManager.LeftButtonCurrentState == MouseState.Clicked) 
             {
-                Sprite = OpenPicross.SpriteMap["pixel_on"];
-                PixelState = PixelState.On;
+                // Pixels with the "Ignored" state cannot be toggled on or off, they must be unignored first
+                if (PixelState == PixelState.Off) 
+                {
+                    Sprite = OpenPicross.SpriteMap["pixel_on"];
+                    PixelState = PixelState.On;
+                }
+
+                else if (PixelState == PixelState.On) 
+                {
+                    Sprite = OpenPicross.SpriteMap["pixel_off"];
+                    PixelState = PixelState.Off;
+                }
             }
 
-            else if (PixelState == PixelState.On) 
+            else if (InputManager.RightButtonCurrentState == MouseState.Clicked)  
             {
-                Sprite = OpenPicross.SpriteMap["pixel_off"];
-                PixelState = PixelState.Off;
-            }
-        }
+                // Pixels with the "On" state cannot be ignored, they must be toggled off first
+                if (PixelState == PixelState.Off) 
+                {
+                    Sprite = OpenPicross.SpriteMap["pixel_ignored"];
+                    PixelState = PixelState.Ignored;
+                }
 
-        public void ToggleIgnored() 
-        {
-            // Pixels with the "On" state cannot be ignored, they must be toggled off first
-            if (PixelState == PixelState.Off) 
-            {
-                Sprite = OpenPicross.SpriteMap["pixel_ignored"];
-                PixelState = PixelState.Ignored;
-            }
-
-            else if (PixelState == PixelState.Ignored) 
-            {
-                Sprite = OpenPicross.SpriteMap["pixel_off"];
-                PixelState = PixelState.Off;
+                else if (PixelState == PixelState.Ignored) 
+                {
+                    Sprite = OpenPicross.SpriteMap["pixel_off"];
+                    PixelState = PixelState.Off;
+                }
             }
         }
 
