@@ -24,10 +24,12 @@ namespace Picross
             return keyboard_map[action].Any(x => Keyboard.GetState().IsKeyDown(x));
         }
 
-        public static bool IsMousePointing(Vector2 topleft, Vector2 botright) 
+        public static bool IsMousePointing(GameObject obj) 
         {
             var cursor = GetCursorPosition();
-            return topleft.X < cursor.X && cursor.X < botright.X && topleft.Y < cursor.Y && cursor.Y < botright.Y;
+            var botright_x = obj.Position.X + obj.Width;
+            var botright_y = obj.Position.Y + obj.Height;
+            return obj.Position.X < cursor.X && cursor.X < botright_x && obj.Position.Y < cursor.Y && cursor.Y < botright_y;
         }
 
         private static Vector2 GetCursorPosition() 

@@ -15,7 +15,9 @@ namespace Picross
 
         // This is a list of all sprites in the game. They are loaded when the game launches
         public static Dictionary<string, Texture2D> SpriteMap;
-
+        public static Dictionary<char, Texture2D> FontMap;
+        
+        public static Dictionary<GameState, List<GameObject>> ObjectLayers;
         private List<string> puzzle_list;
         private PuzzleMap loaded_puzzle;
         
@@ -41,11 +43,9 @@ namespace Picross
         protected override void Initialize()
         {
             // Set the window to its default resolution
-            graphics.PreferredBackBufferWidth = 1366;
-            graphics.PreferredBackBufferHeight = 768;
+            graphics.PreferredBackBufferWidth = 1920;
+            graphics.PreferredBackBufferHeight = 1080;
             graphics.ApplyChanges();
-
-            state_path = new List<GameState> { GameState.InGame };
 
             base.Initialize();
         }
@@ -55,31 +55,69 @@ namespace Picross
             sprite_batch = new SpriteBatch(GraphicsDevice);
             text_batch = new SpriteBatch(GraphicsDevice);
 
+            state_path = new List<GameState> { GameState.LevelSelect };
+
             SpriteMap = new Dictionary<string, Texture2D>() 
             {
-                { "1", Content.Load<Texture2D>("Sprites/number1") },
-                { "2", Content.Load<Texture2D>("Sprites/number2") },
-                { "3", Content.Load<Texture2D>("Sprites/number3") },
-                { "4", Content.Load<Texture2D>("Sprites/number4") },
-                { "5", Content.Load<Texture2D>("Sprites/number5") },
-                { "6", Content.Load<Texture2D>("Sprites/number6") },
-                { "7", Content.Load<Texture2D>("Sprites/number7") },
-                { "8", Content.Load<Texture2D>("Sprites/number8") },
-                { "9", Content.Load<Texture2D>("Sprites/number9") },
-                { "0", Content.Load<Texture2D>("Sprites/number0") },
                 { "pixel_off", Content.Load<Texture2D>("Sprites/pixel_off") },
                 { "pixel_on", Content.Load<Texture2D>("Sprites/pixel_on") },
                 { "pixel_ignored", Content.Load<Texture2D>("Sprites/pixel_ignored") }
             };
 
-            puzzle_list = new List<string>() 
+            FontMap = new Dictionary<char, Texture2D>() 
             {
-                "TestPuzzles/test6.png"
+                { '1', Content.Load<Texture2D>("Sprites/Text/text_1") },
+                { '2', Content.Load<Texture2D>("Sprites/Text/text_2") },
+                { '3', Content.Load<Texture2D>("Sprites/Text/text_3") },
+                { '4', Content.Load<Texture2D>("Sprites/Text/text_4") },
+                { '5', Content.Load<Texture2D>("Sprites/Text/text_5") },
+                { '6', Content.Load<Texture2D>("Sprites/Text/text_6") },
+                { '7', Content.Load<Texture2D>("Sprites/Text/text_7") },
+                { '8', Content.Load<Texture2D>("Sprites/Text/text_8") },
+                { '9', Content.Load<Texture2D>("Sprites/Text/text_9") },
+                { '0', Content.Load<Texture2D>("Sprites/Text/text_0") },
             };
 
-            VerifyPuzzleList();
+            puzzle_list = new List<string>() 
+            {
+                "TestPuzzles/test_a.png",
+                "TestPuzzles/test_b.png",
+                "TestPuzzles/test_c.png",
+                "TestPuzzles/test_d.png",
+                "TestPuzzles/test_e.png",
+                "TestPuzzles/test_f.png",
+                "TestPuzzles/test_g.png",
+                "TestPuzzles/test1.png",
+                "TestPuzzles/test2.png",
+                "TestPuzzles/test3.png",
+                "TestPuzzles/test4.png",
+                "TestPuzzles/test5.png",
+                "TestPuzzles/test6.png",
+                "TestPuzzles/test7.png",
+                "TestPuzzles/test8.png",
+                "TestPuzzles/test9.png",
+            };
 
+            ObjectLayers = new Dictionary<GameState, List<GameObject>>()
+            {
+                { GameState.TitleScreen, new List<GameObject>() },
+                { GameState.LevelSelect, new List<GameObject>() },
+                { GameState.InGame, new List<GameObject>() },
+                { GameState.Options, new List<GameObject>() },
+                { GameState.Victory, new List<GameObject>() },
+            };
+            
             loaded_puzzle = PuzzleLoader.LoadPuzzleFromPNG("TestPuzzles/test6.png");
+
+            for (int x = 0; x < loaded_puzzle.PlayerMap.GetLength(0); x++)
+            {   
+                for (int y = 0; y < loaded_puzzle.PlayerMap.GetLength(1); y++) 
+                {
+                    ObjectLayers[GameState.InGame].Add(loaded_puzzle.PlayerMap[x, y]);
+                }
+            }
+
+            VerifyPuzzleList();
         }
 
         protected override void Update(GameTime gameTime)
@@ -119,7 +157,7 @@ namespace Picross
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
             sprite_batch.Begin(SpriteSortMode.Immediate, null, SamplerState.PointClamp, null, null, null, Matrix.CreateScale(scaling_factor));
-            text_batch.Begin(SpriteSortMode.Immediate, null, SamplerState.LinearWrap, null, null, null, Matrix.CreateScale(scaling_factor));
+            text_batch.Begin(SpriteSortMode.Immediate, null, SamplerState.LinearClamp, null, null, null, Matrix.CreateScale(scaling_factor));
 
             if (state_path.Last() == GameState.TitleScreen)
             {
@@ -180,14 +218,11 @@ namespace Picross
         private void GameStateInGameUpdate() 
         {
             // Check to see if any of the tiles have been clicked
-            for (int x = 0; x < loaded_puzzle.PlayerMap.GetLength(0); x++)
-            {   
-                for (int y = 0; y < loaded_puzzle.PlayerMap.GetLength(1); y++) 
+            foreach (GameObject obj in ObjectLayers[GameState.InGame])
+            {
+                if (InputManager.IsMousePointing(obj))
                 {
-                    var pixel = loaded_puzzle.PlayerMap[x, y];
-                    var botright = new Vector2(pixel.Position.X + pixel.Width, pixel.Position.Y + pixel.Height);
-
-                    if (InputManager.IsMousePointing(pixel.Position, botright))
+                    if (obj is Pixel pixel)
                     {
                         if (InputManager.LeftButtonCurrentState == MouseState.Clicked) 
                         {
@@ -259,21 +294,18 @@ namespace Picross
         {
             var current_position = PuzzleLoader.board_origin;
             var pixel_size = loaded_puzzle.PlayerMap[0, 0].Height;
+            var text_height = FontMap['0'].Height;
+            var text_width = FontMap['0'].Width;
 
             // This counter tells us index we're at in the column list
             int col_index = 0;
             foreach (List<int> column in puzzle_guide.Columns)
             {
-                // This is the height in pixels of the number "Zero" in our sprite map
-                // We will assume that all numbers in our font have ths same height, and are square.
-                // This will make it easier for us to do some positioning math
-                var num_height = SpriteMap["0"].Height;
-
                 // col_scale is how much to shrink the column so that it will fit in the width of the tile
-                var col_scale = ((float)pixel_size/num_height);
+                var col_scale = ((float)pixel_size/text_height);
 
                 // margin is how much of the vertical space above the board is being taken up by this column of the guide
-                var margin = (column.Count*col_scale*num_height)/(PuzzleLoader.board_origin.Y);
+                var margin = (column.Count*col_scale*text_height)/(PuzzleLoader.board_origin.Y);
                 
                 // If the margin is too small for the guide, then we have to shrink the column even further to make it fit
                 col_scale = margin > 1 ? col_scale/margin : col_scale;
@@ -281,7 +313,7 @@ namespace Picross
                 // We push the column over to the right a distance equal to half the width of one tile,
                 // minus half the apparent width of a number sprite. This will center the column horizontally
                 // relative to the tile
-                current_position.X += (pixel_size/2 - num_height*col_scale/2);
+                current_position.X += (pixel_size/2 - text_width*col_scale/2);
 
                 // We iterate through the column in reverse, since we're drawing them bottom to top
                 float initial_x = current_position.X;
@@ -294,21 +326,15 @@ namespace Picross
 
                     // We push the column upwards a distance equal to its apparent height. This will align the bottom of 
                     // the column with the top of the board
-                    current_position.Y -= num_height*num_scale;
-
-                    // This will push the number to the right for a different amount depending on how many
-                    // digits are in the number. Has no effect for single digit numbers. This makes sure 
-                    // multi-digit numbers are centered properly
-                    current_position.X += num_height*num_scale*0.175f*(str.Length - 1);
+                    current_position.Y -= text_height*num_scale;
 
                     // Draw each of the digits of in the number to the screen
                     foreach (char c in str) 
                     {   
-                        text_batch.Draw(SpriteMap[c.ToString()], current_position, null, Color.White, 0f, Vector2.Zero, num_scale, SpriteEffects.None, 0f);
+                        text_batch.Draw(FontMap[c], current_position, null, Color.White, 0f, Vector2.Zero, num_scale, SpriteEffects.None, 0f);
                         
                         // Each digit needs to be to the right of the previous digit.
-                        // The *0.75f reduces the spacing between the digits so it looks better
-                        current_position.X += num_height*num_scale*0.75f;
+                        current_position.X += text_width*num_scale;
                     }
 
                     // We return to our inital X value for the next number in the column
@@ -327,18 +353,15 @@ namespace Picross
         {
             var current_position = PuzzleLoader.board_origin;
             var pixel_size = loaded_puzzle.PlayerMap[0, 0].Height;
+            var text_height = FontMap['0'].Height;
+            var text_width = FontMap['0'].Width;
 
             // This counter tells us index we're at in the row list
             int row_index = 0;
             foreach (List<int> row in puzzle_guide.Rows)
             {
-                // This is the height in pixels of the number "Zero" in our sprite map
-                // We will assume that all numbers in our font have ths same height, and are square.
-                // This will make it easier for us to do some positioning math
-                var num_height = SpriteMap["0"].Height;
-
                 // row_scale is how much to shrink the row so that it will fit in the height of the tile
-                var row_scale = ((float)pixel_size/num_height);
+                var row_scale = ((float)pixel_size/text_height);
 
                 // margin is how much of the horizontal space to the left of the board is being taken up by this row of the guide
                 var margin = (row.Count*pixel_size)/(PuzzleLoader.board_origin.X);
@@ -360,7 +383,7 @@ namespace Picross
                     // Center multi-digit numbers vertically
                     if (str.Length > 1) 
                     {
-                        current_position.Y += num_height*num_scale/2;
+                        current_position.Y += text_height*num_scale/2;
                         current_position.X += pixel_size/2;
                     }
 
@@ -368,8 +391,8 @@ namespace Picross
                     float initial_x = current_position.X;
                     foreach (char c in Enumerable.Reverse(str))
                     {   
-                        text_batch.Draw(SpriteMap[c.ToString()], current_position, null, Color.White, 0f, Vector2.Zero, num_scale, SpriteEffects.None, 0f);
-                        current_position.X -= num_height*num_scale*0.75f;
+                        text_batch.Draw(FontMap[c], current_position, null, Color.White, 0f, Vector2.Zero, num_scale, SpriteEffects.None, 0f);
+                        current_position.X -= text_width*num_scale;
                     }
 
                     // We return to our inital X and Y value for the next number in the row
@@ -423,8 +446,13 @@ namespace Picross
         }
     }
 
-    //public class Button : GameObject
-    //{
+    public class Button : GameObject
+    {
+        public string Label { get; set; }
 
-    //}
+        public Button(Vector2 pos, int width, int height, Texture2D sprite, string label) : base(pos, width, height, sprite)
+        {
+            Label = label;
+        }
+    }
 } 
