@@ -24,7 +24,7 @@ namespace Picross
                 
                 for (int y = 0; y < pixel_map.GetLength(1); y++)
                 {
-                    if (pixel_map[x, y].State == PixelState.On) 
+                    if (pixel_map[x, y].PixelState == PixelState.On) 
                     {
                         current_column[current_column.Count - 1]++;
                         last_pixel = true;
@@ -56,7 +56,7 @@ namespace Picross
                 
                 for (int x = 0; x < pixel_map.GetLength(0); x++)
                 {
-                    if (pixel_map[x, y].State == PixelState.On) 
+                    if (pixel_map[x, y].PixelState == PixelState.On) 
                     {
                         current_row[current_row.Count - 1]++;
                         last_pixel = true;
@@ -133,56 +133,50 @@ namespace Picross
             {   
                 for (int y = 0; y < PlayerMap.GetLength(1); y++) 
                 {
-                    PlayerMap[x, y] = new Pixel();
-                    PlayerMap[x, y].Position = SolutionMap[x, y].Position;
+                    PlayerMap[x, y] = new Pixel(SolutionMap[x, y].Position, SolutionMap[x, y].Height);
                 }
             }
         }
     }
 
 
-    public class Pixel 
+    public class Pixel : GameObject
     {
-        public PixelState State { get; set; }
-        public Texture2D Sprite { get; set; }
-        public Vector2 Position { get; set; }
+        public PixelState PixelState { get; set; }
 
         public void ToggleOnOff() 
         {
             // Pixels with the "Ignored" state cannot be toggled on or off, they must be unignored first
-            if (State == PixelState.Off) 
+            if (PixelState == PixelState.Off) 
             {
                 Sprite = OpenPicross.SpriteMap["pixel_on"];
-                State = PixelState.On;
+                PixelState = PixelState.On;
             }
 
-            else if (State == PixelState.On) 
+            else if (PixelState == PixelState.On) 
             {
                 Sprite = OpenPicross.SpriteMap["pixel_off"];
-                State = PixelState.Off;
+                PixelState = PixelState.Off;
             }
         }
 
         public void ToggleIgnored() 
         {
             // Pixels with the "On" state cannot be ignored, they must be toggled off first
-            if (State == PixelState.Off) 
+            if (PixelState == PixelState.Off) 
             {
                 Sprite = OpenPicross.SpriteMap["pixel_ignored"];
-                State = PixelState.Ignored;
+                PixelState = PixelState.Ignored;
             }
 
-            else if (State == PixelState.Ignored) 
+            else if (PixelState == PixelState.Ignored) 
             {
                 Sprite = OpenPicross.SpriteMap["pixel_off"];
-                State = PixelState.Off;
+                PixelState = PixelState.Off;
             }
         }
 
-        public Pixel() 
-        {
-            Sprite = OpenPicross.SpriteMap["pixel_off"];
-        }
+        public Pixel(Vector2 pos, int size) : base(pos, size, size, OpenPicross.SpriteMap["pixel_off"]) { }
     }
 
 
